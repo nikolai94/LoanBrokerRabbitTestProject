@@ -15,6 +15,15 @@ public class RequestLoan {
     private String toDate;
     private ArrayList<Bank> banks;
 
+    public RequestLoan(int creditScore, String SNN, double amount, String toDate, ArrayList<Bank> banks) {
+        this.creditScore = creditScore;
+        this.SNN = SNN;
+        this.amount = amount;
+        this.toDate = toDate;
+        this.banks = banks;
+    }
+    
+    
     public RequestLoan() {
     }
     
