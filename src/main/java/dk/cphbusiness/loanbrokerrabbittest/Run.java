@@ -6,7 +6,6 @@
 package dk.cphbusiness.loanbrokerrabbittest;
 
 import com.google.gson.Gson;
-import dto.RequestLoanDto;
 import entity.Bank;
 import entity.RequestLoan;
 import java.util.ArrayList;
@@ -49,11 +48,10 @@ public class Run {
         String json = g.toJson(loan);
         System.out.println(json);
         
-        //decode from json back to RequestLoan DTO
-        RequestLoanDto rDto = g.fromJson(json, RequestLoanDto.class);
+        RequestLoan request = g.fromJson(json, RequestLoan.class);
+        ArrayList<Bank> bank = request.getBanks();
         
-        ArrayList<Bank> bank = rDto.getBanksFromRealFormat();
-        System.out.println("Size: "+rDto.getBanks().size());
+        System.out.println("Size: "+request.getBanks().size());
         
         
         for (Bank bankRow : bank) {

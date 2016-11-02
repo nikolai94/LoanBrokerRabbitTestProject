@@ -6,42 +6,52 @@
 package test;
 
 import com.rabbitmq.client.*;
+import config.RabbitConnection;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ReceiveLogsDirect {
 
-  private static final String EXCHANGE_NAME = "direct_logs";
+    private static final String EXCHANGE_NAME = "direct_logs";
 
-  public static void main(String[] argv) throws Exception {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost("localhost");
-    Connection connection = factory.newConnection();
-    Channel channel = connection.createChannel();
+    public static void main(String[] argv) throws Exception {
+        RabbitConnection rabbitConnection = new RabbitConnection();
+        
+        final Channel channel = rabbitConnection.makeConnection();
 
-    
-    channel.exchangeDeclare(EXCHANGE_NAME, "direct");
-    String queueName = channel.queueDeclare().getQueue();
-    
-    if (argv.length == 0){
-      System.err.println("Usage: ReceiveLogsDirect [info] [warning] [error]");
-      channel.queueBind(queueName, EXCHANGE_NAME, "info");
+        channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+        String queueName = channel.queueDeclare().getQueue();
+
+        channel.queueBind(queueName, EXCHANGE_NAME, "routingKeyTest");
+        //final Channel channelSendMsg = channel;
+        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+        QueueingConsumer consumer = new QueueingConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope,
+                    AMQP.BasicProperties properties, byte[] body) throws IOException {
+                String message = new String(body, "UTF-8");
+                System.out.println(" [x] Received '" + envelope.getRoutingKey() + "':'" + message + "'");
+                sendToTranslator(channel, "testKeyReceiveDummy", "exchangeeceiveDummy", message);
+            }
+        };
+        channel.basicConsume(queueName, true, consumer);
     }
-    
-    /*for(String severity : argv){
-      channel.queueBind(queueName, EXCHANGE_NAME, severity);
-    }*/
-    channel.queueBind(queueName, EXCHANGE_NAME, "routingKeyTest");
-    
-    System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
-     QueueingConsumer consumer = new QueueingConsumer(channel) {
-      @Override
-      public void handleDelivery(String consumerTag, Envelope envelope,
-                                 AMQP.BasicProperties properties, byte[] body) throws IOException {
-        String message = new String(body, "UTF-8");
-        System.out.println(" [x] Received '" + envelope.getRoutingKey() + "':'" + message + "'");
-      }
-    };
-    channel.basicConsume(queueName, true, consumer);
-  }
+
+    private static void sendToTranslator(Channel channel,String routingKey, String exchangeName, String msg) {
+
+        try {
+            channel.exchangeDeclare(exchangeName, "direct");
+            
+            channel.basicPublish(exchangeName, routingKey, null, msg.getBytes("UTF-8"));
+            System.out.println(" [x] Sent '" + routingKey + "':'" + msg + "'");
+
+        } catch (IOException ex) {
+            System.out.println(ex.getStackTrace());
+        }
+
+    }
+
 }

@@ -7,7 +7,8 @@ import com.rabbitmq.client.*;
 import java.io.IOException;
 
 import com.rabbitmq.client.*;
-import dto.RequestLoanDto;
+import config.RabbitConnection;
+import entity.RequestLoan;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -18,10 +19,14 @@ public class RecipientList {
 
     //Rabbit mq make function send to all banks to their channel (direct)
     public static void main(String[] args) throws Exception {
+        
+        RabbitConnection rabbitConnection = new RabbitConnection();
+
+        
         //rabbit connect
         String exchangeName = "Banks";
-        Channel channel = null;
-        channel = connectToChannel("localhost", "", "", exchangeName);
+        //Channel channel = connectToChannel("localhost", "", "");
+        Channel channel = rabbitConnection.makeConnection();
         channel.exchangeDeclare(exchangeName, "direct");
 
         String queueName = channel.queueDeclare().getQueue();
@@ -33,12 +38,12 @@ public class RecipientList {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, "UTF-8");
-                RequestLoanDto requestDto = getDtoFromJson(message);
-                if (requestDto.getBanks() != null) {
-                    for (Bank bank : requestDto.getBanksFromRealFormat()) {
+                RequestLoan request = getFromJson(message);
+                if (request.getBanks() != null) {
+                    for (Bank bank : request.getBanks()) {
                         //remember that the component "Get banks" must choose which banks we need to send to(according to credit score)
                         //send to translator queue here, make send method
-                        sendToTranslator();
+                        //sendToTranslator();
                     }
                 }
             }
@@ -49,7 +54,7 @@ public class RecipientList {
 
     //Make a connection to channel.
     //Returns a Channel. Returns null if error
-    private static Channel connectToChannel(String host, String username, String cph, String exchangeName) {
+   /* private static Channel connectToChannel(String host, String username, String cph) {
         Channel channel = null;
         try {
             ConnectionFactory factory = new ConnectionFactory();
@@ -65,15 +70,23 @@ public class RecipientList {
         }
 
         return channel;
-    }
+    }*/
 
-    private static RequestLoanDto getDtoFromJson(String json) {
+    private static RequestLoan getFromJson(String json) {
         Gson g = new Gson();
-        return g.fromJson(json, RequestLoanDto.class);
+        return g.fromJson(json, RequestLoan.class);
     }
 
-    private static void sendToTranslator() {
-        //connectToChannel();
+    private static void sendToTranslator(Channel channel, String routingKey, String exchangeName, String msg) {
+        try {
+            channel.exchangeDeclare(exchangeName, "direct");
+            channel.basicPublish(exchangeName, routingKey, null, msg.getBytes("UTF-8"));
+            System.out.println(" [x] Sent '" + routingKey + "':'" + msg + "'");
+        } catch (IOException ex) {
+            System.out.println("Error in RecipientList class - sendToTranslator()");
+            System.out.println(ex.getStackTrace());
+        }
+
     }
 
 }
