@@ -44,10 +44,8 @@ public class ReceiveLogsDirect {
 
         try {
             channel.exchangeDeclare(exchangeName, "direct");
-            
             channel.basicPublish(exchangeName, routingKey, null, msg.getBytes("UTF-8"));
             System.out.println(" [x] Sent '" + routingKey + "':'" + msg + "'");
-
         } catch (IOException ex) {
             System.out.println(ex.getStackTrace());
         }

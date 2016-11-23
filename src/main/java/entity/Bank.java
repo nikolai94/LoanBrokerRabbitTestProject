@@ -10,13 +10,13 @@ public class Bank {
    private String name;
    //minimum credit score
    private int minCreditScore;
-   private String queue;
+   private String routingKey;
 
     public Bank(String id, String name, int minCreditScore, String channelName) {
         this.id = id;
         this.name = name;
         this.minCreditScore = minCreditScore;
-        this.queue = channelName;
+        this.routingKey = channelName;
     }
 
    
@@ -36,12 +36,12 @@ public class Bank {
         this.minCreditScore = minCreditScore;
     }
 
-    public String getChannelName() {
-        return queue;
+    public String getRoutingKey() {
+        return routingKey;
     }
 
-    public void setChannelName(String channelName) {
-        this.queue = channelName;
+    public void setRoutingKey(String routingKey) {
+        this.routingKey = routingKey;
     }
 
     public String getName() {
