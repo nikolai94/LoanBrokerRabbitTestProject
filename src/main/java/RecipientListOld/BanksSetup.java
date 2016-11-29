@@ -1,5 +1,5 @@
 
-package RecipientList;
+package RecipientListOld;
 import entity.Bank;
 
 /**

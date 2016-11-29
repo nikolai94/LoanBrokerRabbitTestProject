@@ -17,6 +17,7 @@ public class RabbitConnection {
     private String host = "localhost";
     private String userName = "";
     private String password = "";
+    private Integer port = 0; 
     private boolean localhost = true;
     private Channel channel;
     private ConnectionFactory factory;
@@ -36,6 +37,7 @@ public class RabbitConnection {
                 if (!localhost) {
                     factory.setUsername(userName);
                     factory.setPassword(password);
+                    factory.setPort(port);
                 }
                 connection = factory.newConnection();
                 channel = connection.createChannel();

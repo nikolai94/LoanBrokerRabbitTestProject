@@ -42,12 +42,12 @@ public class SendToBank {
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
 
-            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+            //channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
 
             //reply
             String corrId = java.util.UUID.randomUUID().toString();
             BasicProperties props = new BasicProperties.Builder()
-                    .correlationId(corrId)
+                    .correlationId("test1122")
                     .replyTo(replyQueueName)
                     .build();
 

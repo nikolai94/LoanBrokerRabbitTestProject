@@ -42,8 +42,10 @@ public class GetReply {
             channel.basicConsume(RPC_QUEUE_NAME, true, consumer);
             while (true) {
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                System.out.println("CorrelationId: "+ delivery.getProperties().getCorrelationId());
+                 
                 String message = new String(delivery.getBody());
-
+                
                 System.out.println(" [x] Received '" + message + "'");
             }
 
