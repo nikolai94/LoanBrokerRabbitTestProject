@@ -10,23 +10,23 @@ package testBanks;
  * @author nikolai
  */
 public class DtoJsonBank {
-    private int ssn;
+    private String ssn;
     private int creditScore;
     private double loanAmount;
     private int loanDuration;
 
-    public DtoJsonBank(int ssn, int creditScore, double loanAmount, int loanDuration) {
+    public DtoJsonBank(String ssn, int creditScore, double loanAmount, int loanDuration) {
         this.ssn = ssn;
         this.creditScore = creditScore;
         this.loanAmount = loanAmount;
         this.loanDuration = loanDuration;
     }
 
-    public int getSsn() {
+    public String getSsn() {
         return ssn;
     }
 
-    public void setSsn(int ssn) {
+    public void setSsn(String ssn) {
         this.ssn = ssn;
     }
 

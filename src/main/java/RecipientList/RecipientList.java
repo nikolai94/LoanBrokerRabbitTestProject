@@ -44,7 +44,7 @@ public class RecipientList {
                 Message request = getFromJson(message);
                 if (request.getBanks() != null) {
                     for (Bank bank : request.getBanks()) {
-                        //sendMessage(bank.getQueue ??, message, corrId);
+                        sendMessage(bank.getRoutingKey(), message, corrId);
                         //remember that the component "Get banks" must choose which banks we need to send to(according to credit score)
                         //send to translator queue here, make send method
                         //sendMessage(channel, bank.getRoutingKey(), "Banks", message);

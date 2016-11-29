@@ -12,69 +12,70 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.QueueingConsumer;
 import config.RabbitConnection;
+import config.RoutingKeys;
 import entity.Bank;
+import entity.Message;
 import entity.RequestLoan;
 import java.io.IOException;
+import testBanks.DtoJsonBank;
 
 /**
  *
  * @author nikolai
  */
 public class ToJsonSchool {
-    
+
     //use replyQueueName as ' BasicProperties props' for the school rabbitmq  https://www.rabbitmq.com/tutorials/tutorial-six-java.html
-    
     public static void main(String[] args) throws Exception {
         final String replyQueueName = "replyFromBanks";
+        final String EXCHANGE_NAME = "cphbusiness.bankJSON";
+        String queueName = "translatorJsonSchool";
         
-        //make handleDelivery from the RecipientList queue
-        
-        //send to school rabbitmq server
-        
-         RabbitConnection rabbitConnection = new RabbitConnection();
-         
-           //rabbit connect
-        final String exchangeName = "Banks";
-        //Channel channel = connectToChannel("localhost", "", "");
-        final Channel channel = rabbitConnection.makeConnection();
-        channel.exchangeDeclare(exchangeName, "direct");
+        RabbitConnection rabbitConnection = new RabbitConnection();
 
-        String queueName = channel.queueDeclare().getQueue();
-        //banks = routingKey
-        channel.queueBind(queueName, exchangeName, "translatorJsonSchool");
+        //Channel channel = connectToChannel("localhost", "", "");
+        Channel channel = rabbitConnection.makeConnection();
+        channel.queueDeclare(queueName, false, false, false, null);
 
         //get banks from queue. "Get banks" component
         QueueingConsumer consumer = new QueueingConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, "UTF-8");
-                RequestLoan request = getFromJson(message);
-                sendMsgToBank(channel, "ourRabbitBank", exchangeName, message, replyQueueName);
+                Message messageFromJson = getFromJson(message);
+                sendMsgToBank(messageFromJson, properties.getCorrelationId(), EXCHANGE_NAME, replyQueueName);
             }
         };
         channel.basicConsume(queueName, true, consumer);
     }
-    
-    private static RequestLoan getFromJson(String json) {
+
+     private static Message getFromJson(String json) {
         Gson g = new Gson();
-        return g.fromJson(json, RequestLoan.class);
+        return g.fromJson(json, Message.class);
     }
-    
-    private static void sendMsgToBank(Channel channel, String routingKey, String exchangeName, String msg, String replyQueueName){
-        BasicProperties props = new BasicProperties
-                                .Builder()
-                                //.correlationId(corrId)
-                                .replyTo(replyQueueName)
-                                .build(); 
-        
+
+
+    private static void sendMsgToBank(Message msg, String corrId, String exchangeName, String replyQueueName){
+        Gson gson = new Gson();
+        RabbitConnection rabbitConnection = new RabbitConnection();
+        Channel channel = rabbitConnection.makeConnection();
         try {
-            channel.exchangeDeclare(exchangeName, "direct");
-            channel.basicPublish(exchangeName, routingKey, props, msg.getBytes("UTF-8"));
+            channel.exchangeDeclare(exchangeName, "fanout");
             
-            System.out.println(" [x] Sent '" + routingKey + "':'" + msg + "'");
+            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
+                    .correlationId("cphbusiness.bankJSON#"+corrId)
+                    .replyTo(replyQueueName)
+                    .build();
+            
+
+            //String message = gson.toJson(new DtoJsonBank(1605789787, 598, 10.0, 360));
+            String message = gson.toJson(new DtoJsonBank(msg.getSsn(), msg.getCreditScore(), msg.getLoanAmount(), msg.getLoanDuration()));
+            channel.basicPublish(exchangeName, "", props, message.getBytes());
+            rabbitConnection.closeChannelAndConnection();
+            System.out.println(" [x] Sent :" + msg.toString() + "");
         } catch (IOException ex) {
-            System.out.println("Error in ToJsonSchool class - sendMsgToBank()");
+            System.out.println("Error in RecipientList class - sendToTranslator()");
             System.out.println(ex.getStackTrace());
         }
-    } 
+    }
 }

@@ -42,7 +42,7 @@ public class SendToBank {
             Connection connection = factory.newConnection();
             Channel channel = connection.createChannel();
 
-            //channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
+            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
 
             //reply
             String corrId = java.util.UUID.randomUUID().toString();
@@ -51,7 +51,7 @@ public class SendToBank {
                     .replyTo(replyQueueName)
                     .build();
 
-            String message = gson.toJson(new DtoJsonBank(1605789787, 598, 10.0, 360));
+            String message = gson.toJson(new DtoJsonBank("1605789787", 598, 10.0, 360));
             channel.basicPublish(EXCHANGE_NAME, "", props, message.getBytes());
 
             channel.close();
