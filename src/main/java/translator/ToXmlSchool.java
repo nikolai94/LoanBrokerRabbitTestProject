@@ -7,46 +7,45 @@ package translator;
 
 import com.google.gson.Gson;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.QueueingConsumer;
 import config.RabbitConnection;
-import config.RoutingKeys;
-import entity.Bank;
 import entity.Message;
-import entity.RequestLoan;
 import java.io.IOException;
+import translator.Dto.LoanRequest;
+import java.io.StringWriter;
+import javax.lang.model.element.Element;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import testBanks.DtoJsonBank;
 
 /**
  *
  * @author nikolai
  */
-public class ToJsonSchool {
+public class ToXmlSchool {
 
-    //use replyQueueName as ' BasicProperties props' for the school rabbitmq  https://www.rabbitmq.com/tutorials/tutorial-six-java.html
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
+        //final String replyQueueName = "replyFromBanks";
         final String replyQueueName = "replyFromBanks";
-        final String EXCHANGE_NAME_SCHOOL = "cphbusiness.bankJSON";
+        final String EXCHANGE_NAME_SCHOOL = "cphbusiness.bankXML";
         final String exchangeName = "TeamFirebug";
-        
-        
+
         RabbitConnection rabbitConnection = new RabbitConnection();
 
         Channel channel = rabbitConnection.makeConnection();
-        
         channel.exchangeDeclare(exchangeName, "direct");
         String queueName = channel.queueDeclare().getQueue();
-        
-        channel.queueBind(queueName, exchangeName, "keyBankJSON");
+
+        channel.queueBind(queueName, exchangeName, "keyBankXML");
         
         //get banks from queue. "Get banks" component
         QueueingConsumer consumer = new QueueingConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, "UTF-8");
-                System.out.println("Received msg: "+message);
                 Message messageFromJson = getFromJson(message);
                 sendMsgToBank(messageFromJson, properties.getCorrelationId(), EXCHANGE_NAME_SCHOOL, replyQueueName);
             }
@@ -59,26 +58,56 @@ public class ToJsonSchool {
         return g.fromJson(json, Message.class);
     }
 
-
-    private static void sendMsgToBank(Message msg, String corrId, String exchangeName, String replyQueueName){
+    private static void sendMsgToBank(Message msg, String corrId, String exchangeName, String replyQueueName) {
         Gson gson = new Gson();
         RabbitConnection rabbitConnection = new RabbitConnection();
         Channel channel = rabbitConnection.makeConnection();
         try {
             channel.exchangeDeclare(exchangeName, "fanout");
-            
+
             AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
-                    .correlationId(exchangeName+"#"+corrId)
+                    .correlationId(exchangeName + "#" + corrId)
                     .replyTo(replyQueueName)
                     .build();
-            
-            String message = gson.toJson(new DtoJsonBank(msg.getSsn(), msg.getCreditScore(), msg.getLoanAmount(), msg.getLoanDuration()));
+
+            String message = makeXmlString(msg);
             channel.basicPublish(exchangeName, "", props, message.getBytes());
             rabbitConnection.closeChannelAndConnection();
             System.out.println(" [x] Sent :" + msg.toString() + "");
         } catch (IOException ex) {
-            System.out.println("Error in ToJsonSchool class - sendMsgToBank()");
+            System.out.println("Error in ToXmlSchool class - sendMsgToBank()");
             System.out.println(ex.getStackTrace());
         }
+    }
+
+    /**
+     *
+     * @param msg
+     * @return a string of xml type LoanRequest class. if error returns null
+     */
+    private static String makeXmlString(Message msg) {
+        LoanRequest dto = new LoanRequest();
+        dto.setSsn(msg.getSsn());
+        dto.setCreditScore(msg.getCreditScore());
+        dto.setLoanAmount(msg.getLoanAmount());
+        dto.setLoanDuration(msg.getLoanDuration());
+
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(LoanRequest.class);
+            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+            jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+            //xml to string
+            StringWriter sw = new StringWriter();
+            jaxbMarshaller.marshal(dto, sw);
+            String xmlString = sw.toString();
+
+            return xmlString;
+
+        } catch (JAXBException e) {
+            e.printStackTrace();
+            System.out.println("!!!!!Error in class - ToXmlSchool - makeXmlString()");
+        }
+        return null;
     }
 }

@@ -3,29 +3,29 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package testBanks;
+package translator.Dto;
 
 /**
  *
  * @author nikolai
  */
-public class DtoJsonBank {
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
+public class LoanRequest {
     private String ssn;
     private int creditScore;
     private double loanAmount;
     private String loanDuration;
 
-    public DtoJsonBank(String ssn, int creditScore, double loanAmount, String loanDuration) {
-        this.ssn = ssn;
-        this.creditScore = creditScore;
-        this.loanAmount = loanAmount;
-        this.loanDuration = loanDuration;
-    }
-
     public String getSsn() {
         return ssn;
     }
-
+    
+    @XmlElement
     public void setSsn(String ssn) {
         this.ssn = ssn;
     }
@@ -33,7 +33,8 @@ public class DtoJsonBank {
     public int getCreditScore() {
         return creditScore;
     }
-
+    
+    @XmlElement
     public void setCreditScore(int creditScore) {
         this.creditScore = creditScore;
     }
@@ -41,7 +42,8 @@ public class DtoJsonBank {
     public double getLoanAmount() {
         return loanAmount;
     }
-
+    
+    @XmlElement
     public void setLoanAmount(double loanAmount) {
         this.loanAmount = loanAmount;
     }
@@ -49,7 +51,8 @@ public class DtoJsonBank {
     public String getLoanDuration() {
         return loanDuration;
     }
-
+    
+    @XmlElement
     public void setLoanDuration(String loanDuration) {
         this.loanDuration = loanDuration;
     }

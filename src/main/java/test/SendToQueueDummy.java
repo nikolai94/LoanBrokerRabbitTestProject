@@ -19,12 +19,14 @@ import java.io.IOException;
 public class SendToQueueDummy {
     public static void main(String[] args) {
         Gson gson = new Gson();
-        String msg = gson.toJson(new Message("111222333", 120, 30.2, 22));
+        String msg = gson.toJson(new Message("111222333", 120, 30.2, "1970-01-01 01:00:00.0 CET"));
         RabbitConnection rabbitConnection = new RabbitConnection();
         Channel channel = rabbitConnection.makeConnection();
         try {
-            channel.queueDeclare(RoutingKeys.RecipientListInput, false, false, false, null);
-            channel.basicPublish("", RoutingKeys.RecipientListInput, null, msg.getBytes("UTF-8"));
+            //channel.queueDeclare(RoutingKeys.RecipientListInput, false, false, false, null);
+            //channel.basicPublish("", RoutingKeys.RecipientListInput, null, msg.getBytes("UTF-8"));
+            channel.queueDeclare("translatorXmlSchool", false, false, false, null);
+            channel.basicPublish("", "translatorXmlSchool", null, msg.getBytes("UTF-8"));
             rabbitConnection.closeChannelAndConnection();
             System.out.println(" [x] Sent :" + msg + "");
         } catch (IOException ex) {

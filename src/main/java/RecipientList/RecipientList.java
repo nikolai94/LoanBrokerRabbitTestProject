@@ -26,33 +26,38 @@ public class RecipientList {
     public static void main(String[] args) throws Exception {
         //make correlationId for Aggregator
         final String corrId = java.util.UUID.randomUUID().toString();
+        //rabbit connect
+        final String exchangeName = "TeamFirebug";
         
         RabbitConnection rabbitConnection = new RabbitConnection();
         
         Channel channel = rabbitConnection.makeConnection();
-        channel.queueDeclare(RoutingKeys.RecipientListInput, false, false, false, null);
+        channel.exchangeDeclare(exchangeName, "direct");
         
+        String queueName = channel.queueDeclare().getQueue();
+        
+        //routingKey = RoutingKeys.RecipientListInput
+        channel.queueBind(queueName, exchangeName, RoutingKeys.RecipientListInput);
+         
         //get banks from queue. "Get banks" component
         QueueingConsumer consumer = new QueueingConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, "UTF-8");
                 //send to Aggregator first
-                sendMessage("FromRecipientToAggregator",message, corrId);
+                sendMessage(exchangeName,"listToAggregator",message, corrId);
                 
                 //send to translator
                 Message request = getFromJson(message);
                 if (request.getBanks() != null) {
                     for (Bank bank : request.getBanks()) {
-                        sendMessage(bank.getRoutingKey(), message, corrId);
+                        sendMessage(exchangeName,bank.getRoutingKey(), message, corrId);
                         //remember that the component "Get banks" must choose which banks we need to send to(according to credit score)
-                        //send to translator queue here, make send method
-                        //sendMessage(channel, bank.getRoutingKey(), "Banks", message);
                     }
                 }
             }
         };
-        channel.basicConsume(RoutingKeys.RecipientListInput, true, consumer);
+        channel.basicConsume(queueName, true, consumer);
 
     }
 
@@ -62,7 +67,7 @@ public class RecipientList {
     }
 
     //can be used for sending message to Translator and Aggregator
-    private static void sendMessage(String queueName, String msg, String corrId) {
+    private static void sendMessage(String exchangeName,String routingKey, String msg, String corrId) {
         RabbitConnection rabbitConnection = new RabbitConnection();
         Channel channel = rabbitConnection.makeConnection();
         try {
@@ -71,9 +76,8 @@ public class RecipientList {
                     .correlationId(corrId)
                     .build();
 
-            
-            channel.queueDeclare(queueName, false, false, false, null);
-            channel.basicPublish("", queueName, props, msg.getBytes("UTF-8"));
+            channel.exchangeDeclare(exchangeName, "direct");
+            channel.basicPublish(exchangeName, routingKey, null, msg.getBytes("UTF-8"));
             rabbitConnection.closeChannelAndConnection();
             System.out.println(" [x] Sent :" + msg + "");
         } catch (IOException ex) {
